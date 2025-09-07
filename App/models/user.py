@@ -1,6 +1,8 @@
 from werkzeug.security import check_password_hash, generate_password_hash
 from App.database import db
 from .enums import DriverStatus
+from .street import Street
+from abc import abstractmethod
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -33,16 +35,26 @@ class User(db.Model):
 
     def get_fullname(self) -> str:
         """Get user's fullname."""
+        return f"{self.first_name} {self.last_name}"
 
+    @abstractmethod
+    def view_inbox(self) -> None:
+        pass
 
-class Driver (User):
-    status = db.Column(db.String(), nullable=False, default=DriverStatus.INACTIVE)
-    current_location = db.Column(db.String(255), nullable=False)
+class Driver(User):
+    __tablename__ = "drivers"
+    status = db.Column(db.String(), nullable=False, default=DriverStatus.INACTIVE.value)
+    current_location = db.Column(db.String(255))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'driver'
+    }
 
     def __init__(self, username, password, first_name, last_name):
         super().__init__(username, password, first_name, last_name)
+        self.status = DriverStatus.INACTIVE.value
 
-    def get_json(self):
+    def get_json(self) -> dict[str, any]:
         return {
             **super().get_json(), # dict unpack
             'status': self.status,
@@ -53,4 +65,47 @@ class Driver (User):
         """Get the current status and location of the driver"""
         return f'{self.get_fullname()} is currently {self.status} at {self.current_location}'
 
-    def 
+    def schedule_stop(self, street_name: Street) -> bool:
+        """Schedule a stop for a given street"""
+        return False
+
+    def mark_arrival(self, street) -> bool:
+        """Update stop to complete"""
+        return False
+
+    def update_status(self, driver_status: DriverStatus) -> None:
+        """Update the driver status"""
+        return
+
+    def view_inbox(self) -> None:
+        """View stop request notifications"""
+        return
+
+    def __repr__(self):
+        return f"<Driver {self.id} {self.get_current_status()}>"
+
+class Resident(User):
+    __tablename__ = "residents"
+    street_name = db.Column(db.String(255))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'resident'
+    }
+
+    def __init__(self, username, password, first_name, last_name, street_name):
+        super().__init__(username, password, first_name, last_name)
+        self.street_name = street_name
+
+    def get_json(self) -> dict[str, any]:
+        return {
+            **super().get_json(), # dict unpack
+            'street_name': self.street_name
+        }
+
+    def request_stop(self) -> bool:
+        """Request a stop for this resident's street"""
+        return False
+
+    def view_inbox(self) -> None:
+        """View drive stop arrival notifications"""
+        return
