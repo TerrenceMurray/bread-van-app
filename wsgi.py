@@ -3,7 +3,7 @@ from functools import wraps
 import click, pytest, sys
 from flask.cli import with_appcontext, AppGroup
 
-from App import get_street_by_string
+from App import get_street_by_string, Driver
 from App.database import db, get_migrate
 from App.main import create_app, save_session, load_session, clear_session
 from App.models import User
@@ -97,16 +97,21 @@ def list_driver_command(f):
 @driver_cli.command("schedule", help="Schedule a stop for a street")
 @click.argument("street")
 @click.argument("scheduled_date")
-# @requires_login
+@requires_login(['driver'])
 def driver_schedule_stop(street: str, scheduled_date: str):
     """Use case 1: Schedule a stop for a street"""
+    driver: Driver = whoami()
+
     street_obj = get_street_by_string(street)
 
     if street_obj is None:
         print("Command failed: Could not get street")
         return
 
-    new_stop = create_stop()
+    driver.schedule_stop(
+        street_obj,
+        scheduled_date
+    )
 
 
 app.cli.add_command(driver_cli) # add group to the cli

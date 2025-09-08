@@ -4,6 +4,9 @@ from .enums import DriverStatus
 from .street import Street
 from abc import abstractmethod
 
+from .. import create_stop
+
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -74,9 +77,9 @@ class Driver(User):
         """Get the current status and location of the driver"""
         return f'{self.get_fullname()} is currently {self.status} at {self.current_location}'
 
-    def schedule_stop(self, street_name: Street, date: str) -> bool:
+    def schedule_stop(self, street: Street, date: str) -> bool:
         """Schedule a stop for a given street"""
-        return False
+        return create_stop(self, street, date)
 
     def mark_arrival(self, street) -> bool:
         """Update stop to complete"""
