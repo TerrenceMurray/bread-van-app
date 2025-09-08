@@ -65,7 +65,7 @@ class Driver(User):
         """Get the current status and location of the driver"""
         return f'{self.get_fullname()} is currently {self.status} at {self.current_location}'
 
-    def schedule_stop(self, street_name: Street) -> bool:
+    def schedule_stop(self, street_name: Street, date: str) -> bool:
         """Schedule a stop for a given street"""
         return False
 
