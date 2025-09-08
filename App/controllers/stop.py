@@ -1,4 +1,4 @@
-from App import Driver, Street, Stop
+from App.models import Driver, Street, Stop
 from App.database import db
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
