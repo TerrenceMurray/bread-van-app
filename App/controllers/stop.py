@@ -1,19 +1,30 @@
-from App.models import Driver, Street, Stop
+from App.models import Driver, Street, Stop, NotificationType
 from App.database import db
+from .notification import create_notification
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 def create_stop(driver: Driver, street: Street, scheduled_date: str) -> Stop | None:
     try:
-        # Create a stop
-        new_stop = Stop(driver, street, scheduled_date)
+        new_stop = driver.schedule_stop(
+            street=street,
+            date=scheduled_date
+        )
 
-        db.session.add(new_stop)
-        db.session.commit()
+        if not new_stop:
+            raise IntegrityError("Failed to create new stop.")
 
         # Notify residents
+        new_notification = create_notification(
+            street=street,
+            notification_type=NotificationType.NEW,
+            message=f"[{new_stop.created_at}]\t{driver.get_fullname()} has scheduled a stop for {street.name} on {scheduled_date}"
+        )
+
+        if not new_notification:
+            raise IntegrityError("Failed to create notification for stop.")
 
         return new_stop
     except SQLAlchemyError as e:
         db.session.rollback()
-        print(f"Failed to create stop on {street.name}")
+        print(f"Failed to create stop on {street.name}. {e}")
         return None

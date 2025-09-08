@@ -8,3 +8,4 @@ class DriverStatus(Enum):
 class NotificationType(Enum):
     ARRIVAL: str = "arrival"
     REQUEST: str = "request"
+    NEW: str = "new"

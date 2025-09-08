@@ -3,19 +3,17 @@ from functools import wraps
 import click, pytest, sys
 from flask.cli import with_appcontext, AppGroup
 
-from App import get_street_by_string, Driver
 from App.database import db, get_migrate
 from App.main import create_app, save_session, load_session, clear_session
-from App.models import User
+from App.models import User, Street, Driver
 from App.controllers import (
-    get_all_users_json,
-    get_all_users,
     initialize,
     get_all_streets_json,
     get_all_streets,
     get_all_drivers_json,
     get_all_drivers,
-    create_stop
+    # create_stop,
+    get_street_by_string
 )
 
 app = create_app()
@@ -59,23 +57,6 @@ def init():
     print('database initialized')
 
 '''
-User Commands
-'''
-
-user_cli = AppGroup('user', help='User object commands')
-
-@user_cli.command("list", help="Lists users in the database")
-@click.option("--f", default="string")
-def list_user_command(f):
-    if f == 'string':
-        print(get_all_users())
-    else:
-        print(get_all_users_json())
-
-app.cli.add_command(user_cli) # add the group to the cli
-
-
-'''
 Driver Commands
 '''
 
@@ -101,18 +82,16 @@ def list_driver_command(f):
 def driver_schedule_stop(street: str, scheduled_date: str):
     """Use case 1: Schedule a stop for a street"""
     driver: Driver = whoami()
-
-    street_obj = get_street_by_string(street)
+    street_obj: Street | None = get_street_by_string(street)
 
     if street_obj is None:
         print("Command failed: Could not get street")
         return
 
-    driver.schedule_stop(
-        street_obj,
-        scheduled_date
-    )
-
+    if driver.schedule_stop(street_obj, scheduled_date):
+        click.echo(f"Successfully scheduled a stop to {street_obj.name}.")
+    else:
+        click.echo(f"Failed to schedule a stop to {street_obj.name}.")
 
 app.cli.add_command(driver_cli) # add group to the cli
 

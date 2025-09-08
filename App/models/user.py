@@ -2,8 +2,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from App.database import db
 from .enums import DriverStatus
 from .street import Street
+from .stop import Stop
 from abc import abstractmethod
-
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -56,6 +57,14 @@ class Driver(User):
     status = db.Column(db.String(), nullable=False, default=DriverStatus.INACTIVE.value)
     current_location = db.Column(db.String(255))
 
+    # Relationships
+    stops = db.relationship(
+        'Stop',
+        back_populates='driver',
+        cascade='all, delete-orphan',
+        lazy='selectin'
+    )
+
     __mapper_args__ = {
         'polymorphic_identity': 'driver'
     }
@@ -75,9 +84,20 @@ class Driver(User):
         """Get the current status and location of the driver"""
         return f'{self.get_fullname()} is currently {self.status} at {self.current_location}'
 
-    def schedule_stop(self, street: Street, date: str) -> bool:
+    def schedule_stop(self, street: Street, date: str) -> Stop | None:
         """Schedule a stop for a given street"""
-        return False
+        try:
+            # Create a stop
+            new_stop = Stop(self, street, date)
+
+            db.session.add(new_stop)
+            db.session.commit()
+
+            return new_stop
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return None
+        pass
 
     def mark_arrival(self, street) -> bool:
         """Update stop to complete"""

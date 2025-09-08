@@ -1,4 +1,4 @@
-from App import Street
+from App.models import Street
 from App.database import db
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
