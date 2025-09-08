@@ -1,5 +1,5 @@
-import click, pytest, sys
-from flask.cli import with_appcontext, AppGroup
+import click
+from flask.cli import AppGroup
 
 from App.utils import (
     requires_login,
@@ -10,7 +10,7 @@ from App.utils import (
 
 from App.database import get_migrate
 from App.main import create_app
-from App.models import Street, Driver, User
+from App.models import Street, Driver
 from App.controllers import (
     initialize,
     get_all_streets_json,
@@ -29,6 +29,7 @@ migrate = get_migrate(app)
 def init():
     initialize()
     print('database initialized')
+
 
 '''
 Driver Commands
@@ -69,10 +70,11 @@ def driver_schedule_stop(street: str, scheduled_date: str):
 
 app.cli.add_command(driver_cli) # add group to the cli
 
+
 '''
 Street Commands
 '''
-
+# e.g. flask street <command>
 street_cli = AppGroup('street', help="Street object commands")
 
 @street_cli.command("list", help="List streets in the database")
@@ -89,34 +91,16 @@ app.cli.add_command(street_cli) # add group to the cli
 
 
 '''
-Test Commands
-'''
-
-test = AppGroup('test', help='Testing commands') 
-
-@test.command("user", help="Run User tests")
-@click.argument("type", default="all")
-def user_tests_command(type):
-    if type == "unit":
-        sys.exit(pytest.main(["-k", "UserUnitTests"]))
-    elif type == "int":
-        sys.exit(pytest.main(["-k", "UserIntegrationTests"]))
-    else:
-        sys.exit(pytest.main(["-k", "App"]))
-    
-
-app.cli.add_command(test)
-
-
-'''
 Auth Commands
 '''
+# e.g. flask auth <command>
 auth_cli = AppGroup("auth", help="Authentication commands")
 
 @auth_cli.command("login", help="Log in and persist session")
 @click.option("--username", required=True)
 @click.option("--password", required=True, prompt=True, hide_input=True)
 def auth_login(username, password):
+    """Use case 2: Login"""
     if login_cli(username, password):
         u = whoami()
         click.secho(f"Logged in as {u.username} ({u.first_name} {u.last_name})", fg="green")
@@ -131,6 +115,7 @@ def auth_login(username, password):
 @click.option("--role", default="resident")
 @click.option("--street")
 def auth_register(username: str, password: str, firstname: str, lastname: str, role: str, street: str):
+    """User case 3: Register"""
     register_user(username, password, firstname, lastname, role, street)
 
 
@@ -139,7 +124,7 @@ def auth_logout():
     clear_session()
     click.secho("Logged out.", fg="yellow")
 
-@auth_cli.command("whoami", help="Show current session user")
+@auth_cli.command("profile", help="Show current session user")
 def auth_whoami():
     u = whoami()
     if not u:
