@@ -1,54 +1,27 @@
-from functools import wraps
-
 import click, pytest, sys
 from flask.cli import with_appcontext, AppGroup
 
-from App.database import db, get_migrate
-from App.main import create_app, save_session, load_session, clear_session
-from App.models import User, Street, Driver
+from App.utils import (
+    requires_login,
+    whoami,
+    login_cli,
+    clear_session
+)
+
+from App.database import get_migrate
+from App.main import create_app
+from App.models import Street, Driver
 from App.controllers import (
     initialize,
     get_all_streets_json,
     get_all_streets,
     get_all_drivers_json,
     get_all_drivers,
-    # create_stop,
     get_street_by_string
 )
 
 app = create_app()
 migrate = get_migrate(app)
-
-def login_cli(username: str, password: str) -> bool:
-    user = db.session.execute(
-        db.select(User).where(User.username == username)
-    ).scalar_one_or_none()
-    if not user or not user.check_password(password):
-        return False
-    save_session(user.id)
-    return True
-
-def whoami() -> User | None:
-    uid = load_session()
-    if uid is None:
-        return None
-    return db.session.get(User, uid)
-
-def requires_login(roles: list[str] | None = None):
-    def f (fn):
-        """Decorator for commands that require a logged-in user."""
-        @wraps(fn)
-        @with_appcontext
-        def wrapper(*args, **kwargs):
-            user = whoami()
-            if not user:
-                raise click.ClickException("Not logged in. Use: flask auth login.")
-
-            if not (user.type in roles):
-                raise click.ClickException("User is not authorized.")
-            return fn(*args, **kwargs)
-        return wrapper
-    return f
 
 # This command creates and initializes the database
 @app.cli.command("init", help="Creates and initializes the database")

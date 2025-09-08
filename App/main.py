@@ -18,8 +18,6 @@ from App.controllers import (
 
 from App.views import views, setup_admin
 
-SESSION_FILE = pathlib.Path.home() / ".breadvan_session"
-
 def add_views(app):
     for view in views:
         app.register_blueprint(view)
@@ -41,17 +39,3 @@ def create_app(overrides={}):
         return render_template('401.html', error=error), 401
     app.app_context().push()
     return app
-
-def save_session(user_id: str):
-    with open(SESSION_FILE, "w") as f:
-        json.dump({"user_id": user_id}, f)
-
-def load_session() -> str | None:
-    if SESSION_FILE.exists():
-        with open(SESSION_FILE) as f:
-            return json.load(f).get("user_id")
-    return None
-
-def clear_session():
-    if SESSION_FILE.exists():
-        SESSION_FILE.unlink()
