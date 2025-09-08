@@ -5,11 +5,19 @@ from .street import Street
 from abc import abstractmethod
 
 class User(db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     username =  db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(120), nullable=False)
+
+    type = db.Column(db.String(50))
+
+    __mapper_args__ = {
+        'polymorphic_on': type,
+        'polymorphic_identity': 'user'
+    }
 
     def __init__(self, username, password, first_name, last_name):
         self.username = username
@@ -42,7 +50,8 @@ class User(db.Model):
         pass
 
 class Driver(User):
-    __tablename__ = "drivers"
+    __tablename__ = 'drivers'
+    id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
     status = db.Column(db.String(), nullable=False, default=DriverStatus.INACTIVE.value)
     current_location = db.Column(db.String(255))
 
@@ -85,7 +94,8 @@ class Driver(User):
         return f"<Driver {self.id} {self.get_current_status()}>"
 
 class Resident(User):
-    __tablename__ = "residents"
+    __tablename__ = 'residents'
+    id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
     street_name = db.Column(db.String(255))
 
     __mapper_args__ = {

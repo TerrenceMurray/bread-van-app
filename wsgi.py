@@ -36,15 +36,21 @@ def whoami() -> User | None:
         return None
     return db.session.get(User, uid)
 
-def requires_login(fn):
-    """Decorator for commands that require a logged-in user."""
-    @wraps(fn)
-    @with_appcontext
-    def wrapper(*args, **kwargs):
-        if not whoami():
-            raise click.ClickException("Not logged in. Use: flask auth login.")
-        return fn(*args, **kwargs)
-    return wrapper
+def requires_login(roles: list[str] | None = None):
+    def f (fn):
+        """Decorator for commands that require a logged-in user."""
+        @wraps(fn)
+        @with_appcontext
+        def wrapper(*args, **kwargs):
+            user = whoami()
+            if not user:
+                raise click.ClickException("Not logged in. Use: flask auth login.")
+
+            if not (user.type in roles):
+                raise click.ClickException("User is not authorized.")
+            return fn(*args, **kwargs)
+        return wrapper
+    return f
 
 # This command creates and initializes the database
 @app.cli.command("init", help="Creates and initializes the database")
@@ -78,7 +84,7 @@ driver_cli = AppGroup('driver', help="Driver object commands")
 
 @driver_cli.command("list", help="List drivers in the database")
 @click.option("--f", default="string")
-@requires_login
+@requires_login(['driver'])
 def list_driver_command(f):
     if f == 'string':
         print(get_all_drivers())
@@ -91,7 +97,7 @@ def list_driver_command(f):
 @driver_cli.command("schedule", help="Schedule a stop for a street")
 @click.argument("street")
 @click.argument("scheduled_date")
-@requires_login
+# @requires_login
 def driver_schedule_stop(street: str, scheduled_date: str):
     """Use case 1: Schedule a stop for a street"""
     street_obj = get_street_by_string(street)
@@ -133,7 +139,6 @@ test = AppGroup('test', help='Testing commands')
 
 @test.command("user", help="Run User tests")
 @click.argument("type", default="all")
-@requires_login
 def user_tests_command(type):
     if type == "unit":
         sys.exit(pytest.main(["-k", "UserUnitTests"]))
