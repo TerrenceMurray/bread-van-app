@@ -123,7 +123,7 @@ class Resident(User):
         'polymorphic_identity': 'resident'
     }
 
-    def __init__(self, username, password, first_name, last_name, street_name):
+    def __init__(self, username: str, password: str, first_name: str, last_name: str, street_name: str):
         super().__init__(username, password, first_name, last_name)
         self.street_name = street_name
 

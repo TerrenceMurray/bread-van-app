@@ -3,9 +3,7 @@ from App.database import db
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 def get_street_by_string(street_str: str) -> Street | None:
-    return db.session.execute(
-        db.select(Street).filter_by(name=street_str)
-    )
+    return db.session.query(Street).filter_by(name=street_str).one_or_none()
 
 def get_all_streets() -> list[Street]:
     return db.session.scalars(db.select(Street)).all()

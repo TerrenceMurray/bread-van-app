@@ -10,14 +10,15 @@ from App.utils import (
 
 from App.database import get_migrate
 from App.main import create_app
-from App.models import Street, Driver
+from App.models import Street, Driver, User
 from App.controllers import (
     initialize,
     get_all_streets_json,
     get_all_streets,
     get_all_drivers_json,
     get_all_drivers,
-    get_street_by_string
+    get_street_by_string,
+    register_user
 )
 
 app = create_app()
@@ -76,7 +77,6 @@ street_cli = AppGroup('street', help="Street object commands")
 
 @street_cli.command("list", help="List streets in the database")
 @click.option("--f", default="string")
-@requires_login
 def list_driver_command(f: str):
     if f == 'string':
         print(get_all_streets())
@@ -122,6 +122,17 @@ def auth_login(username, password):
         click.secho(f"Logged in as {u.username} ({u.first_name} {u.last_name})", fg="green")
     else:
         raise click.ClickException("Invalid credentials.")
+
+@auth_cli.command("register", help="Create an account")
+@click.option("--username", required=True)
+@click.option("--password", required=True)
+@click.option("--firstname", required=True)
+@click.option("--lastname", required=True)
+@click.option("--role", default="resident")
+@click.option("--street")
+def auth_register(username: str, password: str, firstname: str, lastname: str, role: str, street: str):
+    register_user(username, password, firstname, lastname, role, street)
+
 
 @auth_cli.command("logout", help="Clear session")
 def auth_logout():
