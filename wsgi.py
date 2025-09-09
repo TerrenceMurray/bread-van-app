@@ -19,7 +19,8 @@ from App.models import (
     Street,
     Driver,
     NotificationType,
-    Resident
+    Resident,
+    DriverStatus
 )
 from App.controllers import (
     initialize,
@@ -127,6 +128,22 @@ def driver_view_stops():
     for stop in driver.stops:
         colour = "yellow" if not stop.has_arrived else "green"
         (click.secho(f"[Created {stop.created_at}]\t{stop.id}) {stop.to_string()}", fg=colour))
+
+
+@driver_cli.command("update", help="Update driver status")
+@click.option("--status")
+@click.option("--where")
+@requires_login(['driver'])
+def driver_update_status(status: str | None, where: str | None):
+    """[Driver] Use case 5: Update status"""
+    driver: Driver = whoami()
+
+    if status and status not in ['all', *[_.value for _ in (DriverStatus.INACTIVE, DriverStatus.EN_ROUTE, DriverStatus.DELIVERING)]]:
+        click.secho("[ERROR]: '--filter' accepts ('inactive', 'en_route', 'delivering')", fg="red")
+        return
+
+    driver.update_status(driver_status=status, where=where)
+    click.secho("Successfully updated your status.", fg="green")
 
 
 @driver_cli.command("status", help="View driver status")

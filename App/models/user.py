@@ -120,9 +120,19 @@ class Driver(User):
         db.session.commit()
         return True
 
-    def update_status(self, driver_status: DriverStatus) -> None:
+    def update_status(self, driver_status: str | None, where: str) -> None:
         """Update the driver status"""
-        return
+        if not driver_status and not where:
+            return
+
+        if driver_status:
+            self.status = driver_status
+        if where:
+            self.current_location = where
+
+        db.session.add(self)
+        db.session.commit()
+
 
     def view_inbox(self, filter: str | None = None) -> None:
         """View stop request notifications"""

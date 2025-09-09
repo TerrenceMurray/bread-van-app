@@ -1,6 +1,5 @@
 import click
-from App import Resident
-from App.models import User, Driver, Street
+from App.models import User, Driver, Street, Resident, DriverStatus
 from App.database import db
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from .street import get_street_by_string
