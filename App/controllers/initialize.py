@@ -14,6 +14,7 @@ def initialize():
     streets = [create_street(street) for street in streets_str]
 
     driver_1 = create_driver('bob', 'bobpass', 'Bob', 'Yi')
+    driver_2 = create_driver('tuck', 'tuckpass', 'Tucker', 'Moore')
     create_resident('rick', 'rickpass', 'Rick', 'Smith', streets[0])
     create_resident('amy', 'amypass', 'Amy', 'Persad', streets[1])
 
@@ -27,14 +28,14 @@ def initialize():
         message=f"A stop was successfully scheduled by '{driver_1.get_fullname()}' at street '{streets[0].name}' for '2025-09-14'.",
     )
 
-    driver_1.schedule_stop(
+    driver_2.schedule_stop(
         street=streets[0],
         date='2025-09-20'
     )
     create_notification(
         street=streets[0],
         notification_type=NotificationType.CONFIRMED,
-        message=f"A stop was successfully scheduled by '{driver_1.get_fullname()}' at street '{streets[0].name}' for '2025-09-20'.",
+        message=f"A stop was successfully scheduled by '{driver_2.get_fullname()}' at street '{streets[0].name}' for '2025-09-20'.",
     )
 
     stop_1 = driver_1.schedule_stop(

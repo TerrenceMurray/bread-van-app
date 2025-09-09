@@ -138,14 +138,31 @@ resident_cli = AppGroup('resident', help="Resident commands")
 @resident_cli.command("inbox", help="View stops for driver")
 @click.option("--filter", default="all")
 @requires_login(['resident'])
-def driver_view_inbox(filter: str):
-    """[Driver] Use case 2: View requested stops"""
+def resident_view_inbox(filter: str):
+    """[Resident] Use case 1: View inbox for scheduled drivers for street"""
     if filter not in ['all', *[ _.value for _ in (NotificationType.REQUESTED, NotificationType.CONFIRMED, NotificationType.ARRIVED)]]:
         click.secho("[ERROR]: '--filter' accepts ('all', 'requested', 'confirmed', 'arrived')", fg="red")
         return
 
     resident: Resident = whoami()
     resident.view_inbox(filter)
+
+
+@resident_cli.command("request", help="Request a stop for street")
+@requires_login(['resident'])
+def resident_request_stop():
+    """[Resident] Use case 2: Request a  stop for street"""
+    resident: Resident = whoami()
+    resident.request_stop()
+
+    create_notification(
+        message=f"'{resident.get_fullname()}' has requested a stop for street '{resident.street_name}'.",
+        notification_type=NotificationType.REQUESTED,
+        street=get_street_by_string(resident.street_name)
+    )
+
+    click.secho(f"Request was made.", fg="green")
+
 
 app.cli.add_command(resident_cli) # add group to the cli
 
@@ -177,14 +194,14 @@ auth_cli = AppGroup("auth", help="Authentication commands")
 
 @auth_cli.command("login", help="Log in and persist session")
 @click.option("--username", required=True)
-@click.option("--password", required=True, prompt=True, hide_input=True)
+@click.option("--password", required=True)
 def auth_login(username, password):
     """[Guest] Use case 1: Login"""
     if login_cli(username, password):
         u = whoami()
         click.secho(f"Logged in as {u.username} ({u.first_name} {u.last_name})", fg="green")
     else:
-        raise click.ClickException("Invalid credentials.")
+        click.secho("[ERROR]: Invalid credentials.", fg="red")
 
 
 @auth_cli.command("register", help="Create an account")

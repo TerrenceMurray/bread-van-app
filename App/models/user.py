@@ -8,6 +8,7 @@ from .notification import Notification
 from abc import abstractmethod
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import or_, and_
+from .stop_request import StopRequest
 
 
 class User(db.Model):
@@ -147,6 +148,9 @@ class Resident(User):
     id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
     street_name = db.Column(db.String(255))
 
+    # Relationships
+    stop_requests = db.relationship('StopRequest', back_populates='resident', cascade='all, delete-orphan', lazy='selectin')
+
     __mapper_args__ = {
         'polymorphic_identity': 'resident'
     }
@@ -161,9 +165,11 @@ class Resident(User):
             'street_name': self.street_name
         }
 
-    def request_stop(self) -> bool:
+    def request_stop(self) -> None:
         """Request a stop for this resident's street"""
-        return False
+        new_request = StopRequest(self)
+        db.session.add(new_request)
+        db.session.commit()
 
     def view_inbox(self, filter: str | None = None) -> None:
         """View stop notifications"""

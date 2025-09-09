@@ -1,6 +1,6 @@
 from App.models import Street
 from App.database import db
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 
 def get_street_by_string(street_str: str) -> Street | None:
     return db.session.query(Street).filter_by(name=street_str).one_or_none()

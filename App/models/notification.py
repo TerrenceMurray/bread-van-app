@@ -28,4 +28,4 @@ class Notification(db.Model):
         }
 
     def to_string(self):
-        return f"[{self.created_at}]\t{self.message}"
+        return f"[Created {self.created_at}]\t{self.message}"
