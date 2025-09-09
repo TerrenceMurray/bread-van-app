@@ -84,20 +84,20 @@ GET
 def get_user(id):
     return db.session.get(User, id)
 
-def get_all_users():
+def get_all_users() -> list[User]:
     return db.session.scalars(db.select(User)).all()
 
-def get_all_drivers():
+def get_all_drivers() -> list[Driver]:
     return db.session.scalars(db.select(Driver)).all()
 
-def get_all_drivers_json():
+def get_all_drivers_json() -> list[dict[str, str]]:
     drivers = get_all_drivers()
     if not drivers:
         return []
     drivers = [driver.get_json() for driver in drivers]
     return drivers
 
-def get_all_users_json():
+def get_all_users_json() -> list[dict[str, str]]:
     users = get_all_users()
     if not users:
         return []

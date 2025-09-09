@@ -5,7 +5,13 @@ from App.database import db
 from .notification import create_notification
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+'''
+CREATE
+'''
 def create_stop(driver: Driver, street: Street, scheduled_date: str) -> Stop | None:
+    """
+    Create a stop for a street
+    """
     try:
         new_stop = driver.schedule_stop(
             street=street,
@@ -31,10 +37,24 @@ def create_stop(driver: Driver, street: Street, scheduled_date: str) -> Stop | N
         print(f"Failed to create stop on {street.name}. {e}")
         return None
 
+
+'''
+GET
+'''
 def get_stop_by_id(id: str) -> Stop | None:
+    """
+    Get a stop by its id
+    """
     return db.session.query(Stop).filter_by(id=id).one_or_none()
 
+
+'''
+UPDATE
+'''
 def complete_stop(id: str) -> None:
+    """
+    Update a stop to be complete
+    """
     stop = get_stop_by_id(id)
 
     if not stop:

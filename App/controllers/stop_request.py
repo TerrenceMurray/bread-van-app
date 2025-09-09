@@ -7,7 +7,13 @@ from .. import NotificationType, get_street_by_string
 if TYPE_CHECKING:
     from App.models import Resident
 
+'''
+CREATE
+'''
 def create_stop_request(resident: Resident):
+    """
+    Create a stop request for a resident's street
+    """
     db.session.add(StopRequest(resident))
     db.session.commit()
 

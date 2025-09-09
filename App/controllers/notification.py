@@ -4,6 +4,9 @@ from App.models.notification import Notification
 from App.models.street import Street
 from App.models.enums import NotificationType
 
+'''
+CREATE
+'''
 def create_notification(
     message: str,
     notification_type: NotificationType,
@@ -21,7 +24,9 @@ def create_notification(
     db.session.commit()
     return notif
 
-
+'''
+GET
+'''
 def get_notifications_by_street(street: Street) -> List[Notification]:
     """
     Return all notifications for a given Street (newest first).

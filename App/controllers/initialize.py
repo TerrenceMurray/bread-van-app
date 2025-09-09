@@ -18,6 +18,9 @@ def initialize():
     create_resident('rick', 'rickpass', 'Rick', 'Smith', streets[0])
     create_resident('amy', 'amypass', 'Amy', 'Persad', streets[1])
 
+    driver_1.update_status("en_route", "Laventille")
+    driver_2.update_status("inactive", "Home")
+
     driver_1.schedule_stop(
         street=streets[0],
         date='2025-09-14'
