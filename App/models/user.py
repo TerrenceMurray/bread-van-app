@@ -1,3 +1,4 @@
+import click
 from werkzeug.security import check_password_hash, generate_password_hash
 from App.database import db
 from .enums import DriverStatus, NotificationType
@@ -50,7 +51,7 @@ class User(db.Model):
         return f"{self.first_name} {self.last_name}"
 
     @abstractmethod
-    def view_inbox(self) -> None:
+    def view_inbox(self, filter: str | None = None) -> None:
         pass
 
 class Driver(User):
@@ -96,15 +97,32 @@ class Driver(User):
             return None
         pass
 
-    def mark_arrival(self, street) -> bool:
-        """Update stop to complete"""
-        return False
+    @staticmethod
+    def mark_arrival(stop_id: str) -> bool:
+        """Notify residents of arrival"""
+        stop: Stop | None = db.session.query(Stop).filter_by(id=stop_id).one_or_none()
+
+        if not stop:
+            click.secho(f"[ERROR]: Failed to find stop with id '{stop_id}'.", fg="red")
+            return False
+
+        if stop.has_arrived:
+            click.secho(f"[ERROR]: Stop id '{stop_id}' has already been completed.", fg="red")
+            return False
+
+        stop.complete()
+
+        click.secho(f"Successfully completed stop id '{stop_id}'.", fg="green")
+
+        db.session.add(stop)
+        db.session.commit()
+        return True
 
     def update_status(self, driver_status: DriverStatus) -> None:
         """Update the driver status"""
         return
 
-    def view_inbox(self, filter: str) -> None:
+    def view_inbox(self, filter: str | None = None) -> None:
         """View stop request notifications"""
         notifications: list[Notification] = []
 

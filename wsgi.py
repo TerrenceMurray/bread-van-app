@@ -1,7 +1,15 @@
+import warnings
+# Remove warning
+warnings.filterwarnings(
+    "ignore",
+    message=r".*pkg_resources is deprecated as an API.*",
+    category=UserWarning,
+)
+
 import click
 from flask.cli import AppGroup
 
-from App import NotificationType
+from App import NotificationType, get_stop_by_id
 from App.utils import (
     requires_login,
     whoami,
@@ -23,6 +31,7 @@ from App.controllers import (
     create_notification
 )
 
+
 app = create_app()
 migrate = get_migrate(app)
 
@@ -42,14 +51,14 @@ driver_cli = AppGroup('driver', help="Driver object commands")
 
 @driver_cli.command("list", help="List drivers in the database")
 @click.option("--f", default="string")
-@requires_login(['driver'])
+@requires_login(['driver', 'resident'])
 def list_driver_command(f):
     if f == 'string':
         print(get_all_drivers())
     elif f == 'json':
         print(get_all_drivers_json())
     else:
-        print("Invalid form argument. (json, string)")
+        click.secho("[ERROR]: Invalid form argument. (json, string)", fg="red")
 
 
 @driver_cli.command("schedule", help="Schedule a stop for a street")
@@ -57,7 +66,7 @@ def list_driver_command(f):
 @click.argument("scheduled_date")
 @requires_login(['driver'])
 def driver_schedule_stop(street: str, scheduled_date: str):
-    """Use case 1: Schedule a stop for a street"""
+    """[Driver] Use case 1: Schedule a stop for a street"""
     driver: Driver = whoami()
     street_obj: Street | None = get_street_by_string(street)
 
@@ -65,28 +74,51 @@ def driver_schedule_stop(street: str, scheduled_date: str):
         click.secho(f"[ERROR]: Street '{street}' not found.", fg="red")
         return
 
-    if driver.schedule_stop(street_obj, scheduled_date):
+    new_stop = driver.schedule_stop(street_obj, scheduled_date)
+
+    if new_stop:
         create_notification(
             street=street_obj,
             notification_type=NotificationType.CONFIRMED,
-            message=f"A stop was successfully scheduled by {driver.get_fullname()} at {street_obj.name} for {scheduled_date}."
+            message=f"A stop was successfully scheduled by '{driver.get_fullname()}' at street '{street_obj.name}' for '{scheduled_date}'."
         )
-        click.secho(f"Successfully scheduled a stop to {street_obj.name}.", fg="green")
+        click.secho(f"Successfully scheduled a stop to '{street_obj.name}'.", fg="green")
     else:
-        click.secho(f"[ERROR]: Failed to schedule a stop to {street_obj.name}.", fg="red")
+        click.secho(f"[ERROR]: Failed to schedule a stop to '{street_obj.name}'.", fg="red")
 
 
 @driver_cli.command("inbox", help="View driver inbox")
 @click.option("--filter", default="all")
 @requires_login(['driver'])
 def driver_view_inbox(filter: str):
-    """Use case 2: View requested stops"""
+    """[Driver] Use case 2: View requested stops"""
     if filter not in ['all', NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value]:
-        click.secho("[ERROR]: --filter accepts ('all', 'requested', 'confirmed')", fg="red")
+        click.secho("[ERROR]: '--filter' accepts ('all', 'requested', 'confirmed')", fg="red")
         return
 
     driver: Driver = whoami()
     driver.view_inbox(filter)
+
+@driver_cli.command("complete", help="Notify residents of arrival at stop. Use 'flask driver stops' to view notifications and copy the id from a message")
+@click.argument("stop_id")
+def driver_mark_arrival(stop_id: str):
+    """[Driver] Use case 3: Mark arrival for a stop on a street"""
+    driver: Driver = whoami()
+
+    if driver.mark_arrival(stop_id):
+        create_notification(
+            notification_type=NotificationType.ARRIVED,
+            message=f"'{driver.get_fullname()}' has arrived at your street."
+        )
+
+
+@driver_cli.command("stops", help="View stops for driver")
+def driver_view_stops():
+    """[Driver] Use case 4: View stops"""
+    driver: Driver = whoami()
+    for stop in driver.stops:
+        colour = "yellow" if not stop.has_arrived else "green"
+        click.secho(f"[Created {stop.created_at}]\t{stop.id}) {stop.to_string()}", fg=colour)
 
 app.cli.add_command(driver_cli) # add group to the cli
 
@@ -105,7 +137,7 @@ def list_driver_command(f: str):
     elif f == 'json':
         print(get_all_streets_json())
     else:
-        print("Invalid form argument. (json, string)")
+        click.secho("[ERROR]: Invalid form argument. hint=('json', 'string')", fg="red")
 
 app.cli.add_command(street_cli) # add group to the cli
 
@@ -120,7 +152,7 @@ auth_cli = AppGroup("auth", help="Authentication commands")
 @click.option("--username", required=True)
 @click.option("--password", required=True, prompt=True, hide_input=True)
 def auth_login(username, password):
-    """Use case 2: Login"""
+    """[Guest] Use case 1: Login"""
     if login_cli(username, password):
         u = whoami()
         click.secho(f"Logged in as {u.username} ({u.first_name} {u.last_name})", fg="green")
@@ -135,7 +167,7 @@ def auth_login(username, password):
 @click.option("--role", default="resident")
 @click.option("--street")
 def auth_register(username: str, password: str, firstname: str, lastname: str, role: str, street: str):
-    """User case 3: Register"""
+    """[Guest] Use case 2: Register"""
     register_user(username, password, firstname, lastname, role, street)
 
 
@@ -144,11 +176,12 @@ def auth_logout():
     clear_session()
     click.secho("Logged out.", fg="yellow")
 
+
 @auth_cli.command("profile", help="Show current session user")
 def auth_whoami():
     u = whoami()
     if not u:
-        click.secho("Not logged in.", fg="red")
+        click.secho("[ERROR]: Not logged in.", fg="red")
         return
     click.echo(f"{u.username} ({u.first_name} {u.last_name})")
 

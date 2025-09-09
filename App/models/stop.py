@@ -12,7 +12,7 @@ class Stop(db.Model):
     street_name = db.Column(db.String(255), nullable=False)
     scheduled_date = db.Column(db.String(27), nullable=False)
     created_at = db.Column(db.String(27), nullable=False)
-    is_complete = db.Column(db.Boolean, nullable=False, default=False)
+    has_arrived = db.Column(db.Boolean, nullable=False, default=False)
 
     # Relationships
     driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False)
@@ -24,7 +24,7 @@ class Stop(db.Model):
         self.scheduled_date = scheduled_date
 
         # Defaults
-        self.is_complete = False
+        self.has_arrived = False
         self.created_at = dt.datetime.utcnow().isoformat()
 
     def get_json(self) -> dict[str, any]:
@@ -34,9 +34,14 @@ class Stop(db.Model):
             'street_name': self.street_name,
             'scheduled_date': self.scheduled_date,
             'created_at': self.created_at,
-            'is_complete': self.is_complete
+            'is_complete': self.has_arrived
         }
 
-    def complete(self) -> bool:
+    def complete(self) -> None:
         """Mark the stop as completed"""
-        return False
+        self.has_arrived = True
+        db.session.add(self)
+        db.session.commit()
+
+    def to_string(self):
+        return f"A stop is scheduled for the street '{self.street_name}' at '{self.scheduled_date}'" if not self.has_arrived else f"A stop was made at '{self.scheduled_date}' on street '{self.street_name}'"

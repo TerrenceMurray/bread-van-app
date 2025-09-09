@@ -10,11 +10,13 @@ class Notification(db.Model):
     street_name = db.Column(db.String(255))
     created_at = db.Column(db.String(27), nullable=False)
 
-    def __init__(self, message: str, street: Street, notification_type: NotificationType):
+    def __init__(self, message: str, street: Street | None, notification_type: NotificationType):
         self.message = message
-        self.street_name = street.name
         self.type = notification_type.value
         self.created_at = dt.datetime.utcnow().isoformat()
+
+        if street:
+            self.street_name = street.name
 
     def get_json(self) -> dict[str, str]:
         return {
@@ -26,4 +28,4 @@ class Notification(db.Model):
         }
 
     def to_string(self):
-        return f"[{self.created_at}]\t{self.message}\n"
+        return f"[{self.created_at}]\t{self.message}"

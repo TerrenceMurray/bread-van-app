@@ -6,8 +6,8 @@ from App.models.enums import NotificationType
 
 def create_notification(
     message: str,
-    street: Street,
     notification_type: NotificationType,
+    street: Street | None = None,
 ) -> Notification:
     """
     Persist and return a Notification object.

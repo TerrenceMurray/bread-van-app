@@ -1,3 +1,5 @@
+import click
+
 from App.models import Driver, Street, Stop, NotificationType
 from App.database import db
 from .notification import create_notification
@@ -28,3 +30,18 @@ def create_stop(driver: Driver, street: Street, scheduled_date: str) -> Stop | N
         db.session.rollback()
         print(f"Failed to create stop on {street.name}. {e}")
         return None
+
+def get_stop_by_id(id: str) -> Stop | None:
+    return db.session.query(Stop).filter_by(id=id).one_or_none()
+
+def complete_stop(id: str) -> None:
+    stop = get_stop_by_id(id)
+
+    if not stop:
+        click.secho(f"[ERROR]: Failed to find stop with id '{id}'.", fg="red")
+        return
+
+    stop.complete()
+
+    db.session.add(stop)
+    db.session.commit()
