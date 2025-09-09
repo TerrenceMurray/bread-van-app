@@ -1,6 +1,7 @@
 import click
 from flask.cli import AppGroup
 
+from App import NotificationType
 from App.utils import (
     requires_login,
     whoami,
@@ -18,7 +19,8 @@ from App.controllers import (
     get_all_drivers_json,
     get_all_drivers,
     get_street_by_string,
-    register_user
+    register_user,
+    create_notification
 )
 
 app = create_app()
@@ -60,13 +62,31 @@ def driver_schedule_stop(street: str, scheduled_date: str):
     street_obj: Street | None = get_street_by_string(street)
 
     if street_obj is None:
-        print("Command failed: Could not get street")
+        click.secho(f"[ERROR]: Street '{street}' not found.", fg="red")
         return
 
     if driver.schedule_stop(street_obj, scheduled_date):
-        click.echo(f"Successfully scheduled a stop to {street_obj.name}.")
+        create_notification(
+            street=street_obj,
+            notification_type=NotificationType.CONFIRMED,
+            message=f"A stop was successfully scheduled by {driver.get_fullname()} at {street_obj.name} for {scheduled_date}."
+        )
+        click.secho(f"Successfully scheduled a stop to {street_obj.name}.", fg="green")
     else:
-        click.echo(f"Failed to schedule a stop to {street_obj.name}.")
+        click.secho(f"[ERROR]: Failed to schedule a stop to {street_obj.name}.", fg="red")
+
+
+@driver_cli.command("inbox", help="View driver inbox")
+@click.option("--filter", default="all")
+@requires_login(['driver'])
+def driver_view_inbox(filter: str):
+    """Use case 2: View requested stops"""
+    if filter not in ['all', NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value]:
+        click.secho("[ERROR]: --filter accepts ('all', 'requested', 'confirmed')", fg="red")
+        return
+
+    driver: Driver = whoami()
+    driver.view_inbox(filter)
 
 app.cli.add_command(driver_cli) # add group to the cli
 

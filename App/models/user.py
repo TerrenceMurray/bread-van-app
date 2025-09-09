@@ -1,10 +1,12 @@
 from werkzeug.security import check_password_hash, generate_password_hash
 from App.database import db
-from .enums import DriverStatus
+from .enums import DriverStatus, NotificationType
 from .street import Street
 from .stop import Stop
+from .notification import Notification
 from abc import abstractmethod
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
+
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -58,12 +60,7 @@ class Driver(User):
     current_location = db.Column(db.String(255))
 
     # Relationships
-    stops = db.relationship(
-        'Stop',
-        back_populates='driver',
-        cascade='all, delete-orphan',
-        lazy='selectin'
-    )
+    stops = db.relationship('Stop', back_populates='driver', cascade='all, delete-orphan', lazy='selectin')
 
     __mapper_args__ = {
         'polymorphic_identity': 'driver'
@@ -94,7 +91,7 @@ class Driver(User):
             db.session.commit()
 
             return new_stop
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.session.rollback()
             return None
         pass
@@ -107,9 +104,17 @@ class Driver(User):
         """Update the driver status"""
         return
 
-    def view_inbox(self) -> None:
+    def view_inbox(self, filter: str) -> None:
         """View stop request notifications"""
-        return
+        notifications: list[Notification] = []
+
+        if filter == 'all':
+             notifications = db.session.query(Notification).filter(Notification.type.in_([NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value])).all()
+        elif filter in [NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value]:
+            notifications = db.session.query(Notification).filter_by(type=filter)
+
+        for notif in notifications:
+            print(notif.to_string())
 
     def __repr__(self):
         return f"<Driver {self.id} {self.get_current_status()}>"
