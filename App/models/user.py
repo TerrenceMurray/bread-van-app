@@ -7,6 +7,7 @@ from .stop import Stop
 from .notification import Notification
 from abc import abstractmethod
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_, and_
 
 
 class User(db.Model):
@@ -131,6 +132,10 @@ class Driver(User):
         elif filter in [NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value]:
             notifications = db.session.query(Notification).filter_by(type=filter)
 
+        if len(notifications) == 0:
+            click.secho("Inbox is empty.", fg="yellow")
+            return
+
         for notif in notifications:
             print(notif.to_string())
 
@@ -160,6 +165,18 @@ class Resident(User):
         """Request a stop for this resident's street"""
         return False
 
-    def view_inbox(self) -> None:
-        """View drive stop arrival notifications"""
-        return
+    def view_inbox(self, filter: str | None = None) -> None:
+        """View stop notifications"""
+        notifications: list[Notification] = []
+
+        if filter == 'all':
+            notifications = db.session.query(Notification).filter(or_(Notification.street_name == self.street_name, Notification.street_name is None)).all()
+        elif filter in [NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value, NotificationType.ARRIVED.value]:
+            notifications = db.session.query(Notification).filter(and_(or_(Notification.street_name == self.street_name, Notification.street_name is None), Notification.type == filter)).all()
+
+        if len(notifications) == 0:
+            click.secho("Inbox is empty.", fg="yellow")
+            return
+
+        for notif in notifications:
+            print(notif.to_string())

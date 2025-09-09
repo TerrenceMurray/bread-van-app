@@ -44,7 +44,7 @@ def requires_login(roles: list[str] | None = None):
         def wrapper(*args, **kwargs):
             user = whoami()
             if not user:
-                raise click.ClickException("Not logged in. Use: flask auth login.")
+                raise click.ClickException("Not logged in. Use 'flask auth login'")
 
             if not (user.type in roles):
                 raise click.ClickException("User is not authorized.")

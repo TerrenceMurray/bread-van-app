@@ -5,21 +5,22 @@ warnings.filterwarnings(
     message=r".*pkg_resources is deprecated as an API.*",
     category=UserWarning,
 )
-
 import click
 from flask.cli import AppGroup
-
-from App import NotificationType, get_stop_by_id
 from App.utils import (
     requires_login,
     whoami,
     login_cli,
     clear_session
 )
-
 from App.database import get_migrate
 from App.main import create_app
-from App.models import Street, Driver
+from App.models import (
+    Street,
+    Driver,
+    NotificationType,
+    Resident
+)
 from App.controllers import (
     initialize,
     get_all_streets_json,
@@ -32,10 +33,14 @@ from App.controllers import (
 )
 
 
+'''
+Initial Setup
+'''
 app = create_app()
 migrate = get_migrate(app)
 
 # This command creates and initializes the database
+# flask init
 @app.cli.command("init", help="Creates and initializes the database")
 def init():
     initialize()
@@ -45,14 +50,14 @@ def init():
 '''
 Driver Commands
 '''
-
 # e.g. flask driver <command>
-driver_cli = AppGroup('driver', help="Driver object commands")
+driver_cli = AppGroup('driver', help="Driver commands")
 
 @driver_cli.command("list", help="List drivers in the database")
 @click.option("--f", default="string")
 @requires_login(['driver', 'resident'])
 def list_driver_command(f):
+    """View all available drivers"""
     if f == 'string':
         print(get_all_drivers())
     elif f == 'json':
@@ -101,6 +106,7 @@ def driver_view_inbox(filter: str):
 
 @driver_cli.command("complete", help="Notify residents of arrival at stop. Use 'flask driver stops' to view notifications and copy the id from a message")
 @click.argument("stop_id")
+@requires_login(['driver'])
 def driver_mark_arrival(stop_id: str):
     """[Driver] Use case 3: Mark arrival for a stop on a street"""
     driver: Driver = whoami()
@@ -113,6 +119,7 @@ def driver_mark_arrival(stop_id: str):
 
 
 @driver_cli.command("stops", help="View stops for driver")
+@requires_login(['driver'])
 def driver_view_stops():
     """[Driver] Use case 4: View stops"""
     driver: Driver = whoami()
@@ -122,16 +129,36 @@ def driver_view_stops():
 
 app.cli.add_command(driver_cli) # add group to the cli
 
+'''
+Resident Commands
+'''
+# e.g. flask resident <command>
+resident_cli = AppGroup('resident', help="Resident commands")
+
+@resident_cli.command("inbox", help="View stops for driver")
+@click.option("--filter", default="all")
+@requires_login(['resident'])
+def driver_view_inbox(filter: str):
+    """[Driver] Use case 2: View requested stops"""
+    if filter not in ['all', *[ _.value for _ in (NotificationType.REQUESTED, NotificationType.CONFIRMED, NotificationType.ARRIVED)]]:
+        click.secho("[ERROR]: '--filter' accepts ('all', 'requested', 'confirmed', 'arrived')", fg="red")
+        return
+
+    resident: Resident = whoami()
+    resident.view_inbox(filter)
+
+app.cli.add_command(resident_cli) # add group to the cli
 
 '''
 Street Commands
 '''
 # e.g. flask street <command>
-street_cli = AppGroup('street', help="Street object commands")
+street_cli = AppGroup('street', help="Street commands")
 
 @street_cli.command("list", help="List streets in the database")
 @click.option("--f", default="string")
-def list_driver_command(f: str):
+def list_street_command(f: str):
+    """View streets available"""
     if f == 'string':
         print(get_all_streets())
     elif f == 'json':
@@ -159,6 +186,7 @@ def auth_login(username, password):
     else:
         raise click.ClickException("Invalid credentials.")
 
+
 @auth_cli.command("register", help="Create an account")
 @click.option("--username", required=True)
 @click.option("--password", required=True)
@@ -173,12 +201,14 @@ def auth_register(username: str, password: str, firstname: str, lastname: str, r
 
 @auth_cli.command("logout", help="Clear session")
 def auth_logout():
+    """Logout of current session"""
     clear_session()
     click.secho("Logged out.", fg="yellow")
 
 
 @auth_cli.command("profile", help="Show current session user")
 def auth_whoami():
+    """View currently logged-in user"""
     u = whoami()
     if not u:
         click.secho("[ERROR]: Not logged in.", fg="red")
