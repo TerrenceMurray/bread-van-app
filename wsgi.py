@@ -29,7 +29,8 @@ from App.controllers import (
     get_all_drivers,
     get_street_by_string,
     register_user,
-    create_notification
+    create_notification,
+    get_driver_by_id
 )
 
 
@@ -125,7 +126,21 @@ def driver_view_stops():
     driver: Driver = whoami()
     for stop in driver.stops:
         colour = "yellow" if not stop.has_arrived else "green"
-        click.secho(f"[Created {stop.created_at}]\t{stop.id}) {stop.to_string()}", fg=colour)
+        (click.secho(f"[Created {stop.created_at}]\t{stop.id}) {stop.to_string()}", fg=colour))
+
+
+@driver_cli.command("status", help="View driver status")
+@click.argument("driver_id")
+@requires_login(['driver', 'resident'])
+def driver_view_status(driver_id: str):
+    """[Resident] Use case 3: View driver status and location"""
+    driver = get_driver_by_id(driver_id)
+
+    if not driver:
+        click.secho(f"[ERROR]: Could not find driver with id {driver_id}.", fg="red")
+        return
+
+    print(driver.get_current_status())
 
 app.cli.add_command(driver_cli) # add group to the cli
 

@@ -105,3 +105,5 @@ def get_all_users_json():
     users = [user.get_json() for user in users]
     return users
 
+def get_driver_by_id(driver_id: str) -> Driver | None:
+    return db.session.query(Driver).filter_by(id=driver_id).one_or_none()

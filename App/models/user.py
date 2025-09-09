@@ -141,7 +141,7 @@ class Driver(User):
             print(notif.to_string())
 
     def __repr__(self):
-        return f"<Driver {self.id} {self.get_current_status()}>"
+        return f"<Driver {self.id} {self.get_fullname()}>"
 
 class Resident(User):
     __tablename__ = 'residents'
