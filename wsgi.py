@@ -8,10 +8,7 @@ warnings.filterwarnings(
 import click
 from flask.cli import AppGroup
 from App.utils import (
-    requires_login,
     whoami,
-    login_cli,
-    clear_session
 )
 from App.database import get_migrate
 from App.main import create_app
@@ -20,7 +17,8 @@ from App.models import (
     Driver,
     NotificationType,
     Resident,
-    DriverStatus
+    DriverStatus,
+    User
 )
 from App.controllers import (
     initialize,
@@ -56,13 +54,12 @@ Driver Commands
 driver_cli = AppGroup('driver', help="Driver commands")
 
 @driver_cli.command("list", help="List drivers in the database")
-@click.option("--f", default="string")
-@requires_login(['driver', 'resident'])
-def list_driver_command(f):
+@click.option("--filter", default="string")
+def list_driver_command(filter: str):
     """View all available drivers"""
-    if f == 'string':
+    if filter == 'string':
         print(get_all_drivers())
-    elif f == 'json':
+    elif filter == 'json':
         print(get_all_drivers_json())
     else:
         click.secho("[ERROR]: Invalid form argument. (json, string)", fg="red")
@@ -71,7 +68,6 @@ def list_driver_command(f):
 @driver_cli.command("schedule", help="Schedule a stop for a street")
 @click.argument("street")
 @click.argument("scheduled_date")
-@requires_login(['driver'])
 def driver_schedule_stop(street: str, scheduled_date: str):
     """[Driver] Use case 1: Schedule a stop for a street"""
     driver: Driver = whoami()
@@ -96,7 +92,6 @@ def driver_schedule_stop(street: str, scheduled_date: str):
 
 @driver_cli.command("inbox", help="View driver inbox")
 @click.option("--filter", default="all")
-@requires_login(['driver'])
 def driver_view_inbox(filter: str):
     """[Driver] Use case 2: View requested stops"""
     if filter not in ['all', NotificationType.REQUESTED.value, NotificationType.CONFIRMED.value]:
@@ -108,7 +103,6 @@ def driver_view_inbox(filter: str):
 
 @driver_cli.command("complete", help="Notify residents of arrival at stop. Use 'flask driver stops' to view notifications and copy the id from a message")
 @click.argument("stop_id")
-@requires_login(['driver'])
 def driver_mark_arrival(stop_id: str):
     """[Driver] Use case 3: Mark arrival for a stop on a street"""
     driver: Driver = whoami()
@@ -121,7 +115,6 @@ def driver_mark_arrival(stop_id: str):
 
 
 @driver_cli.command("stops", help="View stops for driver")
-@requires_login(['driver'])
 def driver_view_stops():
     """[Driver] Use case 4: View stops"""
     driver: Driver = whoami()
@@ -133,7 +126,6 @@ def driver_view_stops():
 @driver_cli.command("update", help="Update driver status")
 @click.option("--status")
 @click.option("--where")
-@requires_login(['driver'])
 def driver_update_status(status: str | None, where: str | None):
     """[Driver] Use case 5: Update status"""
     driver: Driver = whoami()
@@ -148,7 +140,6 @@ def driver_update_status(status: str | None, where: str | None):
 
 @driver_cli.command("status", help="View driver status")
 @click.argument("driver_id")
-@requires_login(['driver', 'resident'])
 def driver_view_status(driver_id: str):
     """[Resident] Use case 3: View driver status and location"""
     driver = get_driver_by_id(driver_id)
@@ -169,7 +160,6 @@ resident_cli = AppGroup('resident', help="Resident commands")
 
 @resident_cli.command("inbox", help="View stops for driver")
 @click.option("--filter", default="all")
-@requires_login(['resident'])
 def resident_view_inbox(filter: str):
     """[Resident] Use case 1: View inbox for scheduled drivers for street"""
     if filter not in ['all', *[ _.value for _ in (NotificationType.REQUESTED, NotificationType.CONFIRMED, NotificationType.ARRIVED)]]:
@@ -181,7 +171,6 @@ def resident_view_inbox(filter: str):
 
 
 @resident_cli.command("request", help="Request a stop for street")
-@requires_login(['resident'])
 def resident_request_stop():
     """[Resident] Use case 2: Request a  stop for street"""
     resident: Resident = whoami()
@@ -224,16 +213,27 @@ Auth Commands
 # e.g. flask auth <command>
 auth_cli = AppGroup("auth", help="Authentication commands")
 
-@auth_cli.command("login", help="Log in and persist session")
-@click.option("--username", required=True)
-@click.option("--password", required=True)
-def auth_login(username, password):
-    """[Guest] Use case 1: Login"""
-    if login_cli(username, password):
-        u = whoami()
-        click.secho(f"Logged in as {u.username} ({u.first_name} {u.last_name})", fg="green")
+@auth_cli.command("list", help="Show a list of users")
+@click.option("--filter")
+def auth_list(filter: str):
+    """Get a list of users"""
+    users: list[User] | None = None
+
+    if filter:
+        if filter not in ['driver', 'resident']:
+            click.secho("[ERROR]: Invalid form argument. hint=('driver', 'resident')", fg="red")
+            return
+
+        users = User.query.filter_by(type=filter)
     else:
-        click.secho("[ERROR]: Invalid credentials.", fg="red")
+        users = User.query.all()
+
+    if users is not None:
+        for user in users:
+            click.secho(user)
+        return
+
+    click.secho("[INFO]: Users not found.", fg="yellow")
 
 
 @auth_cli.command("register", help="Create an account")
@@ -246,22 +246,5 @@ def auth_login(username, password):
 def auth_register(username: str, password: str, firstname: str, lastname: str, role: str, street: str):
     """[Guest] Use case 2: Register"""
     register_user(username, password, firstname, lastname, role, street)
-
-
-@auth_cli.command("logout", help="Clear session")
-def auth_logout():
-    """Logout of current session"""
-    clear_session()
-    click.secho("Logged out.", fg="yellow")
-
-
-@auth_cli.command("profile", help="Show current session user")
-def auth_whoami():
-    """View currently logged-in user"""
-    u = whoami()
-    if not u:
-        click.secho("[ERROR]: Not logged in.", fg="red")
-        return
-    click.echo(f"{u.username} ({u.first_name} {u.last_name})")
 
 app.cli.add_command(auth_cli)

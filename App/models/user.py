@@ -56,6 +56,9 @@ class User(db.Model):
     def view_inbox(self, filter: str | None = None) -> None:
         pass
 
+    def __repr__(self):
+        return f"<User {self.id} {self.get_fullname()}>"
+
 class Driver(User):
     __tablename__ = 'drivers'
     id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
