@@ -262,13 +262,13 @@ def resident_request_stop(resident_id: str):
     if not resident:
         return
 
-    resident.request_stop()
-    create_notification(
-        message=f"'{resident.get_fullname()}' has requested a stop for street '{resident.street_name}'.",
-        notification_type=NotificationType.REQUESTED,
-        street=get_street_by_string(resident.street_name),
-    )
-    click.secho("Request was made.", fg="green")
+    if resident.request_stop():
+        create_notification(
+            message=f"'{resident.get_fullname()}' has requested a stop for street '{resident.street_name}'.",
+            notification_type=NotificationType.REQUESTED,
+            street=get_street_by_string(resident.street_name),
+        )
+        click.secho("Request was made.", fg="green")
 
 
 app.cli.add_command(resident_cli)  # register resident group
