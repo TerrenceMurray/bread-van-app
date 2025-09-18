@@ -97,7 +97,8 @@ class Driver(User):
             db.session.commit()
 
             return new_stop
-        except SQLAlchemyError:
+        except SQLAlchemyError as e:
+            click.secho(f"[ERROR] {e}.", fg="red")
             db.session.rollback()
             return None
         pass
