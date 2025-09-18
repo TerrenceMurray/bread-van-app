@@ -22,6 +22,7 @@ from App.models import (
     Resident,
     DriverStatus,
     User,
+    Stop
 )
 from App.controllers import (
     initialize,
@@ -34,6 +35,7 @@ from App.controllers import (
     create_notification,
     get_driver_by_id,
     stop_exists,
+    delete_stop_requests
 )
 
 # --------------------------------------------------------------------------------------
@@ -170,6 +172,16 @@ def driver_mark_arrival(driver_id: str, stop_id: str):
             notification_type=NotificationType.ARRIVED,
             message=f"'{driver.get_fullname()}' has arrived at your street.",
         )
+
+        # Remove all stop requests for that street if successful
+        stop: Optional[Stop] = Stop.query.get(stop_id)
+
+        if not stop:
+            click.secho("[ERROR]: Failed to fetch stop.", fg="red")
+            return
+
+        delete_stop_requests(stop.street_name)
+
         click.secho("Arrival recorded and residents notified.", fg="green")
     else:
         click.secho("[ERROR]: Failed to mark arrival for the provided stop id.", fg="red")
